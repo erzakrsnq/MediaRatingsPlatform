@@ -1,6 +1,6 @@
 package org.example.server;
 
-import org.example.application.Application;
+import org.example.application.common.Application;
 import org.example.server.http.Request;
 import org.example.server.http.Response;
 import org.example.server.util.RequestMapper;

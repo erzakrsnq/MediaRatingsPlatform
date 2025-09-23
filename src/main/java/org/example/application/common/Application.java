@@ -1,4 +1,4 @@
-package org.example.application;
+package org.example.application.common;
 
 import org.example.server.http.Request;
 import org.example.server.http.Response;
