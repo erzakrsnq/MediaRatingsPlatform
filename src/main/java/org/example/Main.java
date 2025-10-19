@@ -1,15 +1,14 @@
 package org.example;
 
-import org.example.server.http.HttpServerApp;
+import org.example.application.MRPApplication;
+import org.example.server.Server;
 
 public class Main {
     public static void main(String[] args) {
-        HttpServerApp server = new HttpServerApp(8080);
+        Server server = new Server(
+            8080,
+            new MRPApplication()
+        );
         server.start();
     }
 }
-
-// Server server = new Server(
-        //  8080,
-        //  new EchoApplication()
-        // )
