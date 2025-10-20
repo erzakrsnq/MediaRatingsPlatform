@@ -4,8 +4,16 @@ import org.example.application.common.Application;
 import org.example.application.common.Controller;
 import org.example.application.common.Router;
 import org.example.application.controller.Usercontroller;
+import org.example.application.controller.AuthController;
+import org.example.application.controller.MediaController;
+import org.example.application.controller.RatingController;
 import org.example.application.repository.MemoryUserRepository;
+import org.example.application.repository.MemoryMediaRepository;
+import org.example.application.repository.MemoryRatingRepository;
 import org.example.application.services.UserService;
+import org.example.application.services.AuthService;
+import org.example.application.services.MediaService;
+import org.example.application.services.RatingService;
 import org.example.server.http.Request;
 import org.example.server.http.Response;
 import org.example.server.http.Status;
@@ -16,15 +24,23 @@ public class MRPApplication implements Application {
     public MRPApplication() {
         this.router = new Router();
 
+        // Initialize services
+        UserService userService = new UserService(new MemoryUserRepository());
+        AuthService authService = new AuthService(userService);
+        MediaService mediaService = new MediaService(new MemoryMediaRepository());
+        RatingService ratingService = new RatingService(new MemoryRatingRepository());
+
         // Add User routes
-        router.addRoute("/users", new Usercontroller(
-            new UserService(new MemoryUserRepository())
-        ));
+        router.addRoute("/users", new Usercontroller(userService));
         
-        // TODO: Add other routes when controllers are implemented
-        // router.addRoute("/media", new Mediacontroller());
-        // router.addRoute("/ratings", new Ratingcontroller());
-        // router.addRoute("/auth", new AuthController());
+        // Add Auth routes
+        router.addRoute("/auth", new AuthController(authService));
+        
+        // Add Media routes
+        router.addRoute("/media", new MediaController(mediaService));
+        
+        // Add Rating routes
+        router.addRoute("/ratings", new RatingController(ratingService));
     }
 
     @Override
