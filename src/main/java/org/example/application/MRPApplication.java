@@ -14,11 +14,12 @@ import org.example.application.services.UserService;
 import org.example.application.services.AuthService;
 import org.example.application.services.MediaService;
 import org.example.application.services.RatingService;
+import org.example.server.http.ContentType;
 import org.example.server.http.Request;
 import org.example.server.http.Response;
 import org.example.server.http.Status;
-public class MRPApplication implements Application {
 
+public class MRPApplication implements Application {
     private final Router router;
 
     public MRPApplication() {
@@ -58,7 +59,7 @@ public class MRPApplication implements Application {
             // Simple error handling for now
             Response response = new Response();
             response.setStatus(Status.NOT_FOUND);
-            response.setContentType("text/plain");
+            response.setContentType(ContentType.TEXT_PLAIN);
             response.setBody("Not Found: " + request.getPath());
             return response;
         }

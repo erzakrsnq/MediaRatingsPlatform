@@ -1,5 +1,4 @@
 #!/bin/bash
-# MediaRatingsPlatform API Curl Script
 
 echo "MediaRatingsPlatform API Tests"
 echo "=================================="
@@ -183,7 +182,28 @@ fi
 print_test "GET /ratings (should now contain the rating)"
 curl -s "$BASE_URL/ratings" | jq '.' 2>/dev/null || echo "Response: $(curl -s "$BASE_URL/ratings")"
 
-# Test 6: Error Cases
+# Test 6: DELETE Operations
+print_section "DELETE Operations"
+
+print_test "DELETE /ratings/$RATING_ID"
+curl -s -w "HTTP Status: %{http_code}\n" -X DELETE "$BASE_URL/ratings/$RATING_ID" | tail -1
+
+print_test "DELETE /media/$MEDIA_ID"
+curl -s -w "HTTP Status: %{http_code}\n" -X DELETE "$BASE_URL/media/$MEDIA_ID" | tail -1
+
+print_test "DELETE /users/$USER_ID"
+curl -s -w "HTTP Status: %{http_code}\n" -X DELETE "$BASE_URL/users/$USER_ID" | tail -1
+
+print_test "GET /users (verify user deletion)"
+curl -s "$BASE_URL/users" | jq '.' 2>/dev/null || echo "Response: $(curl -s "$BASE_URL/users")"
+
+print_test "GET /media (verify media deletion)"
+curl -s "$BASE_URL/media" | jq '.' 2>/dev/null || echo "Response: $(curl -s "$BASE_URL/media")"
+
+print_test "GET /ratings (verify rating deletion)"
+curl -s "$BASE_URL/ratings" | jq '.' 2>/dev/null || echo "Response: $(curl -s "$BASE_URL/ratings")"
+
+# Test 7: Error Cases
 print_section "Error Cases"
 
 print_test "GET /users/nonexistent (should return 404)"

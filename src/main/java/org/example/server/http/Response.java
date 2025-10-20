@@ -3,7 +3,7 @@ package org.example.server.http;
 public class Response {
 
     private Status status;
-    private String contentType;
+    private ContentType contentType;
     private String body;
 
     public Response() {
@@ -22,10 +22,10 @@ public class Response {
     }
 
     public String getContentType() {
-        return contentType;
+        return contentType.getMimeType();
     }
 
-    public void setContentType(String contentType) {
+    public void setContentType(ContentType contentType) {
         this.contentType = contentType;
     }
 

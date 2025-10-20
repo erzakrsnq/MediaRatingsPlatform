@@ -1,5 +1,6 @@
 package org.example.server.util;
 
+import org.example.server.http.Method;
 import org.example.server.http.Request;
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
@@ -10,7 +11,7 @@ public class RequestMapper {
 
     public Request fromExchange(HttpExchange exchange) throws IOException {
         Request request = new Request();
-        request.setMethod(exchange.getRequestMethod());
+        request.setMethod(Method.valueOf(exchange.getRequestMethod()));
         request.setPath(exchange.getRequestURI().getPath());
 
         // Read request body

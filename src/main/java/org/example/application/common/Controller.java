@@ -1,5 +1,6 @@
 package org.example.application.common;
 
+import org.example.server.http.ContentType;
 import org.example.server.http.Request;
 import org.example.server.http.Response;
 import org.example.server.http.Status;
@@ -31,20 +32,20 @@ public abstract class Controller {
     }
 
     protected Response text(String text, Status status) {
-        return r(status, "text/plain", text);
+        return r(status, ContentType.TEXT_PLAIN, text);
     }
 
     protected Response json(Object o, Status status) {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
             String json = objectMapper.writeValueAsString(o);
-            return r(status, "application/json", json);
+            return r(status, ContentType.APPLICATION_JSON, json);
         } catch (Exception ex) {
             throw new RuntimeException("JSON conversion failed", ex);
         }
     }
 
-    private Response r(Status status, String contentType, String body) {
+    private Response r(Status status, ContentType contentType, String body) {
         Response response = new Response();
         response.setStatus(status);
         response.setContentType(contentType);

@@ -2,7 +2,7 @@ package org.example.server.http;
 
 public class Request {
 
-    private String method;
+    private Method method;
     private String path;
     private String body;
 
@@ -10,10 +10,10 @@ public class Request {
     }
 
     public String getMethod() {
-        return method;
+        return method.getVerb();
     }
 
-    public void setMethod(String method) {
+    public void setMethod(Method method) {
         this.method = method;
     }
 
