@@ -16,8 +16,7 @@ public class UserService {
     public User create(User user) {
         // Generate ID
         user.setId(UUID.randomUUID().toString());
-        
-        // Simple password hashing (in real app, use proper hashing)
+
         if (user.getPasswordHash() != null) {
             user.setPasswordHash("hashed_" + user.getPasswordHash());
         }
