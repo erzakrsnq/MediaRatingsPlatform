@@ -34,10 +34,8 @@ public class UserService {
     }
 
     public User login(String username, String password) {
-        return userRepository.findAll().stream()
-                .filter(user -> username.equals(user.getUsername()))
+        return userRepository.findByUsername(username)
                 .filter(user -> ("hashed_" + password).equals(user.getPasswordHash()))
-                .findFirst()
                 .orElseThrow(() -> new RuntimeException("Invalid credentials"));
     }
 }

@@ -1,0 +1,15 @@
+services:
+  postgresdb:
+    image: postgres:18.0
+    environment:
+      POSTGRES_PASSWORD: swen1db
+      POSTGRES_USER: swen1user
+      POSTGRES_DB: mrpdb
+    ports:
+      - 5433:5432
+    volumes:
+      - mrpv:/var/lib/postgresql
+
+volumes:
+  mrpv:
+

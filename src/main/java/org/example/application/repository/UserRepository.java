@@ -10,4 +10,5 @@ public interface UserRepository {
     List<User> findAll();
     User save(User user);
     User delete(String id);
+    Optional<User> findByUsername(String username);
 }

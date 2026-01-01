@@ -7,9 +7,10 @@ import org.example.application.controller.Usercontroller;
 import org.example.application.controller.AuthController;
 import org.example.application.controller.MediaController;
 import org.example.application.controller.RatingController;
-import org.example.application.repository.MemoryUserRepository;
-import org.example.application.repository.MemoryMediaRepository;
-import org.example.application.repository.MemoryRatingRepository;
+import org.example.application.common.ConnectionPool;
+import org.example.application.repository.DbUserRepository;
+import org.example.application.repository.DbMediaRepository;
+import org.example.application.repository.DbRatingRepository;
 import org.example.application.services.UserService;
 import org.example.application.services.AuthService;
 import org.example.application.services.MediaService;
@@ -21,15 +22,31 @@ import org.example.server.http.Status;
 
 public class MRPApplication implements Application {
     private final Router router;
+    private final ConnectionPool connectionPool;
 
     public MRPApplication() {
         this.router = new Router();
 
+        // Initialize ConnectionPool
+        this.connectionPool = new ConnectionPool(
+                "postgresql",
+                "localhost",
+                5433,
+                "swen1user",
+                "swen1db",
+                "mrpdb"
+        );
+
+        // Initialize repositories with DB
+        DbUserRepository userRepository = new DbUserRepository(connectionPool);
+        DbMediaRepository mediaRepository = new DbMediaRepository(connectionPool);
+        DbRatingRepository ratingRepository = new DbRatingRepository(connectionPool);
+
         // Initialize services
-        UserService userService = new UserService(new MemoryUserRepository());
+        UserService userService = new UserService(userRepository);
         AuthService authService = new AuthService(userService);
-        MediaService mediaService = new MediaService(new MemoryMediaRepository());
-        RatingService ratingService = new RatingService(new MemoryRatingRepository());
+        MediaService mediaService = new MediaService(mediaRepository);
+        RatingService ratingService = new RatingService(ratingRepository);
 
         // Add User routes
         router.addRoute("/users", new Usercontroller(userService));
