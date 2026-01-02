@@ -3,6 +3,7 @@ package org.example.application.controller;
 import org.example.application.common.Controller;
 import org.example.application.model.Rating;
 import org.example.application.services.RatingService;
+import org.example.server.http.Method;
 import org.example.server.http.Request;
 import org.example.server.http.Response;
 import org.example.server.http.Status;
@@ -20,7 +21,7 @@ public class RatingController extends Controller {
     @Override
     public Response handle(Request request) {
 
-        if (request.getMethod().equals("GET")) {
+        if (request.getMethod().equals(Method.GET.getVerb())) {
             if (request.getPath().equals("/ratings")) {
                 return readAll();
             }
@@ -33,15 +34,15 @@ public class RatingController extends Controller {
             return read(request);
         }
 
-        if (request.getMethod().equals("POST")) {
+        if (request.getMethod().equals(Method.POST.getVerb())) {
             return create(request);
         }
 
-        if (request.getMethod().equals("PUT")) {
+        if (request.getMethod().equals(Method.PUT.getVerb())) {
             return update(request);
         }
 
-        if (request.getMethod().equals("DELETE")) {
+        if (request.getMethod().equals(Method.DELETE.getVerb())) {
             return delete(request);
         }
 
@@ -58,12 +59,8 @@ public class RatingController extends Controller {
         String[] pathParts = request.getPath().split("/");
         if (pathParts.length >= 3) {
             String id = pathParts[2];
-            try {
-                Rating rating = ratingService.get(id);
-                return json(rating, Status.OK);
-            } catch (RuntimeException e) {
-                return status(Status.NOT_FOUND);
-            }
+            Rating rating = ratingService.get(id);
+            return json(rating, Status.OK);
         }
         return status(Status.BAD_REQUEST);
     }
@@ -73,12 +70,8 @@ public class RatingController extends Controller {
         String[] pathParts = request.getPath().split("/");
         if (pathParts.length >= 4) {
             String mediaId = pathParts[3];
-            try {
-                List<Rating> ratings = ratingService.getByMediaId(mediaId);
-                return json(ratings, Status.OK);
-            } catch (RuntimeException e) {
-                return status(Status.NOT_FOUND);
-            }
+            List<Rating> ratings = ratingService.getByMediaId(mediaId);
+            return json(ratings, Status.OK);
         }
         return status(Status.BAD_REQUEST);
     }
@@ -88,60 +81,42 @@ public class RatingController extends Controller {
         String[] pathParts = request.getPath().split("/");
         if (pathParts.length >= 4) {
             String userId = pathParts[3];
-            try {
-                List<Rating> ratings = ratingService.getByUserId(userId);
-                return json(ratings, Status.OK);
-            } catch (RuntimeException e) {
-                return status(Status.NOT_FOUND);
-            }
+            List<Rating> ratings = ratingService.getByUserId(userId);
+            return json(ratings, Status.OK);
         }
         return status(Status.BAD_REQUEST);
     }
 
     private Response create(Request request) {
-        try {
-            Rating rating = toObject(request.getBody(), Rating.class);
-            rating = ratingService.create(rating);
-            return json(rating, Status.CREATED);
-        } catch (Exception e) {
-            return status(Status.BAD_REQUEST);
-        }
+        Rating rating = toObject(request.getBody(), Rating.class);
+        rating = ratingService.create(rating);
+        return json(rating, Status.CREATED);
     }
 
     private Response update(Request request) {
-        try {
-            // Extract ID from path like /ratings/123
-            String[] pathParts = request.getPath().split("/");
-            if (pathParts.length >= 3) {
-                String id = pathParts[2];
-                Rating update = toObject(request.getBody(), Rating.class);
-                Rating rating = ratingService.update(id, update);
-                return json(rating, Status.OK);
-            }
-            return status(Status.BAD_REQUEST);
-        } catch (Exception e) {
-            return status(Status.BAD_REQUEST);
+        // Extract ID from path like /ratings/123
+        String[] pathParts = request.getPath().split("/");
+        if (pathParts.length >= 3) {
+            String id = pathParts[2];
+            Rating update = toObject(request.getBody(), Rating.class);
+            Rating rating = ratingService.update(id, update);
+            return json(rating, Status.OK);
         }
+        return status(Status.BAD_REQUEST);
     }
 
     private Response delete(Request request) {
-        try {
-            // Extract ID from path like /ratings/123
-            String[] pathParts = request.getPath().split("/");
-            if (pathParts.length >= 3) {
-                String id = pathParts[2];
-                Rating rating = ratingService.delete(id);
-                if (rating != null) {
-                    return json(rating, Status.OK);
-                } else {
-                    return status(Status.NOT_FOUND);
-                }
+        // Extract ID from path like /ratings/123
+        String[] pathParts = request.getPath().split("/");
+        if (pathParts.length >= 3) {
+            String id = pathParts[2];
+            Rating rating = ratingService.delete(id);
+            if (rating != null) {
+                return json(rating, Status.OK);
+            } else {
+                return status(Status.NOT_FOUND);
             }
-            return status(Status.BAD_REQUEST);
-        } catch (Exception e) {
-            return status(Status.BAD_REQUEST);
         }
+        return status(Status.BAD_REQUEST);
     }
 }
-
-

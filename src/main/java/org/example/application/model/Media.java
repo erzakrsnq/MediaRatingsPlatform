@@ -10,6 +10,7 @@ public class Media {
     private String director;
     private String actors;
     private double averageRating;
+    private String ownerId;
 
     public Media() {
     }
@@ -84,5 +85,13 @@ public class Media {
 
     public void setAverageRating(double averageRating) {
         this.averageRating = averageRating;
+    }
+
+    public String getOwnerId() {
+        return ownerId;
+    }
+
+    public void setOwnerId(String ownerId) {
+        this.ownerId = ownerId;
     }
 }

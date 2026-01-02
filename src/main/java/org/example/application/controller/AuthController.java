@@ -3,6 +3,7 @@ package org.example.application.controller;
 import org.example.application.common.Controller;
 import org.example.application.model.Token;
 import org.example.application.services.AuthService;
+import org.example.server.http.Method;
 import org.example.server.http.Request;
 import org.example.server.http.Response;
 import org.example.server.http.Status;
@@ -18,7 +19,7 @@ public class AuthController extends Controller {
 
     @Override
     public Response handle(Request request) {
-        if (request.getMethod().equals("POST")) {
+        if (request.getMethod().equals(Method.POST.getVerb())) {
             if (request.getPath().equals("/auth/login")) {
                 return login(request);
             }
@@ -40,7 +41,7 @@ public class AuthController extends Controller {
             Token token = authService.login(username, password);
             return json(token, Status.OK);
         } catch (Exception e) {
-            return status(Status.UNAUTHORIZED);
+            return status(Status.BAD_REQUEST);
         }
     }
 

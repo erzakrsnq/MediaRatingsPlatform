@@ -1,5 +1,6 @@
 package org.example.application.services;
 
+import org.example.application.exception.EntityNotFoundException;
 import org.example.application.model.User;
 import org.example.application.repository.UserRepository;
 import java.util.List;
@@ -26,7 +27,7 @@ public class UserService {
 
     public User get(String id) {
         return userRepository.find(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(EntityNotFoundException::new);
     }
 
     public List<User> getAll() {

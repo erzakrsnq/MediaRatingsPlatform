@@ -15,13 +15,18 @@ import org.example.application.services.UserService;
 import org.example.application.services.AuthService;
 import org.example.application.services.MediaService;
 import org.example.application.services.RatingService;
-import org.example.server.http.ContentType;
+import org.example.application.exception.ExceptionMapper;
+import org.example.application.exception.EntityNotFoundException;
+import org.example.application.exception.RouteNotFoundException;
+import org.example.application.exception.JsonConversionException;
+import org.example.application.exception.NotJsonBodyException;
 import org.example.server.http.Request;
 import org.example.server.http.Response;
 import org.example.server.http.Status;
 
 public class MRPApplication implements Application {
     private final Router router;
+    private final ExceptionMapper exceptionMapper;
     private final ConnectionPool connectionPool;
 
     public MRPApplication() {
@@ -55,30 +60,32 @@ public class MRPApplication implements Application {
         router.addRoute("/auth", new AuthController(authService));
         
         // Add Media routes
-        router.addRoute("/media", new MediaController(mediaService));
+        router.addRoute("/media", new MediaController(mediaService, authService));
         
         // Add Rating routes
         router.addRoute("/ratings", new RatingController(ratingService));
+
+        // Initialize ExceptionMapper
+        this.exceptionMapper = new ExceptionMapper();
+        this.exceptionMapper.register(EntityNotFoundException.class, Status.NOT_FOUND);
+        this.exceptionMapper.register(RouteNotFoundException.class, Status.NOT_FOUND);
+        this.exceptionMapper.register(NotJsonBodyException.class, Status.BAD_REQUEST);
+        this.exceptionMapper.register(JsonConversionException.class, Status.INTERNAL_SERVER_ERROR);
     }
 
     @Override
     public Response handle(Request request) {
         try {
-            System.out.println("Request path: " + request.getPath());
-            System.out.println("Request method: " + request.getMethod());
-            
             Controller controller = router.findController(request.getPath())
-                    .orElseThrow(RuntimeException::new);
+                    .orElseThrow(
+                            () -> new RouteNotFoundException(
+                                    "%s not found".formatted(request.getPath())
+                            )
+                    );
 
             return controller.handle(request);
         } catch (Exception ex) {
-            System.out.println("Exception: " + ex.getMessage());
-            // Simple error handling for now
-            Response response = new Response();
-            response.setStatus(Status.NOT_FOUND);
-            response.setContentType(ContentType.TEXT_PLAIN);
-            response.setBody("Not Found: " + request.getPath());
-            return response;
+            return exceptionMapper.toResponse(ex);
         }
     }
 }

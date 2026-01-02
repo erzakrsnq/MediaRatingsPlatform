@@ -3,6 +3,7 @@ package org.example.application.controller;
 import org.example.application.common.Controller;
 import org.example.application.model.User;
 import org.example.application.services.UserService;
+import org.example.server.http.Method;
 import org.example.server.http.Request;
 import org.example.server.http.Response;
 import org.example.server.http.Status;
@@ -21,14 +22,14 @@ public class Usercontroller extends Controller {
     @Override
     public Response handle(Request request) {
 
-        if (request.getMethod().equals("GET")) {
+        if (request.getMethod().equals(Method.GET.getVerb())) {
             if (request.getPath().equals("/users")) {
                 return readAll();
             }
             return read(request);
         }
 
-        if (request.getMethod().equals("POST")) {
+        if (request.getMethod().equals(Method.POST.getVerb())) {
             if (request.getPath().equals("/users/login")) {
                 return login(request);
             }
@@ -48,29 +49,20 @@ public class Usercontroller extends Controller {
         String[] pathParts = request.getPath().split("/");
         if (pathParts.length >= 3) {
             String id = pathParts[2];
-            try {
-                User user = userService.get(id);
-                return json(user, Status.OK);
-            } catch (RuntimeException e) {
-                return status(Status.NOT_FOUND);
-            }
+            User user = userService.get(id);
+            return json(user, Status.OK);
         }
         return status(Status.BAD_REQUEST);
     }
 
     private Response create(Request request) {
-        try {
-            User user = toObject(request.getBody(), User.class);
-            user = userService.create(user);
-            return json(user, Status.CREATED);
-        } catch (Exception e) {
-            return status(Status.BAD_REQUEST);
-        }
+        User user = toObject(request.getBody(), User.class);
+        user = userService.create(user);
+        return json(user, Status.CREATED);
     }
 
     private Response login(Request request) {
         try {
-            // Simple login with username and password in JSON
             ObjectMapper mapper = new ObjectMapper();
             var loginData = mapper.readTree(request.getBody());
             String username = loginData.get("username").asText();
@@ -79,7 +71,7 @@ public class Usercontroller extends Controller {
             User user = userService.login(username, password);
             return json(user, Status.OK);
         } catch (Exception e) {
-            return status(Status.UNAUTHORIZED);
+            return status(Status.BAD_REQUEST);
         }
     }
 }

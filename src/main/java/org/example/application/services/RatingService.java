@@ -1,5 +1,6 @@
 package org.example.application.services;
 
+import org.example.application.exception.EntityNotFoundException;
 import org.example.application.model.Rating;
 import org.example.application.repository.RatingRepository;
 import java.util.List;
@@ -22,7 +23,7 @@ public class RatingService {
 
     public Rating get(String id) {
         return ratingRepository.find(id)
-                .orElseThrow(() -> new RuntimeException("Rating not found"));
+                .orElseThrow(EntityNotFoundException::new);
     }
 
     public List<Rating> getAll() {
@@ -39,7 +40,7 @@ public class RatingService {
 
     public Rating update(String id, Rating update) {
         Rating rating = ratingRepository.find(id)
-                .orElseThrow(() -> new RuntimeException("Rating not found"));
+                .orElseThrow(EntityNotFoundException::new);
 
         rating.setRating(update.getRating());
         rating.setComment(update.getComment());

@@ -1,5 +1,6 @@
 package org.example.application.common;
-
+import org.example.application.exception.JsonConversionException;
+import org.example.application.exception.NotJsonBodyException;
 import org.example.server.http.ContentType;
 import org.example.server.http.Request;
 import org.example.server.http.Response;
@@ -15,7 +16,7 @@ public abstract class Controller {
         try {
             return objectMapper.readValue(content, valueType);
         } catch (Exception ex) {
-            throw new RuntimeException("Invalid JSON", ex);
+            throw new NotJsonBodyException(ex);
         }
     }
 
@@ -41,7 +42,7 @@ public abstract class Controller {
             String json = objectMapper.writeValueAsString(o);
             return r(status, ContentType.APPLICATION_JSON, json);
         } catch (Exception ex) {
-            throw new RuntimeException("JSON conversion failed", ex);
+            throw new JsonConversionException(ex);
         }
     }
 

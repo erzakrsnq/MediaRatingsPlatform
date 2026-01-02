@@ -92,7 +92,7 @@ public class DbMediaRepository implements MediaRepository {
                 pstmt.setString(7, media.getDirector());
                 pstmt.setString(8, media.getActors());
                 pstmt.setDouble(9, media.getAverageRating());
-                pstmt.setString(10, null); // owner_id - später implementieren
+                pstmt.setString(10, media.getOwnerId());
             }
             pstmt.executeUpdate();
             return media;
@@ -131,6 +131,7 @@ public class DbMediaRepository implements MediaRepository {
         media.setDirector(rs.getString("director"));
         media.setActors(rs.getString("actors"));
         media.setAverageRating(rs.getDouble("average_rating"));
+        media.setOwnerId(rs.getString("owner_id"));
         return media;
     }
 }
