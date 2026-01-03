@@ -7,14 +7,17 @@ import org.example.application.controller.Usercontroller;
 import org.example.application.controller.AuthController;
 import org.example.application.controller.MediaController;
 import org.example.application.controller.RatingController;
+import org.example.application.controller.FavoriteController;
 import org.example.application.common.ConnectionPool;
 import org.example.application.repository.DbUserRepository;
 import org.example.application.repository.DbMediaRepository;
 import org.example.application.repository.DbRatingRepository;
+import org.example.application.repository.DbFavoriteRepository;
 import org.example.application.services.UserService;
 import org.example.application.services.AuthService;
 import org.example.application.services.MediaService;
 import org.example.application.services.RatingService;
+import org.example.application.services.FavoriteService;
 import org.example.application.exception.ExceptionMapper;
 import org.example.application.exception.EntityNotFoundException;
 import org.example.application.exception.RouteNotFoundException;
@@ -46,12 +49,14 @@ public class MRPApplication implements Application {
         DbUserRepository userRepository = new DbUserRepository(connectionPool);
         DbMediaRepository mediaRepository = new DbMediaRepository(connectionPool);
         DbRatingRepository ratingRepository = new DbRatingRepository(connectionPool);
+        DbFavoriteRepository favoriteRepository = new DbFavoriteRepository(connectionPool);
 
         // Initialize services
         UserService userService = new UserService(userRepository);
         AuthService authService = new AuthService(userService);
         MediaService mediaService = new MediaService(mediaRepository);
         RatingService ratingService = new RatingService(ratingRepository);
+        FavoriteService favoriteService = new FavoriteService(favoriteRepository, mediaRepository);
 
         // Add User routes
         router.addRoute("/users", new Usercontroller(userService));
@@ -64,6 +69,9 @@ public class MRPApplication implements Application {
         
         // Add Rating routes
         router.addRoute("/ratings", new RatingController(ratingService));
+        
+        // Add Favorite routes
+        router.addRoute("/favorites", new FavoriteController(favoriteService, authService));
 
         // Initialize ExceptionMapper
         this.exceptionMapper = new ExceptionMapper();
