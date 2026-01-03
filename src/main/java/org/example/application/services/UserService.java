@@ -39,4 +39,8 @@ public class UserService {
                 .filter(user -> ("hashed_" + password).equals(user.getPasswordHash()))
                 .orElseThrow(() -> new RuntimeException("Invalid credentials"));
     }
+
+    public User delete(String id) {
+        return userRepository.delete(id);
+    }
 }
