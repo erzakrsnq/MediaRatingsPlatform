@@ -67,4 +67,8 @@ public class MediaService {
 
         return mediaRepository.delete(id);
     }
+
+    public List<Media> search(String title, String genre, String type, Double minRating) {
+        return mediaRepository.search(title, genre, type, minRating);
+    }
 }

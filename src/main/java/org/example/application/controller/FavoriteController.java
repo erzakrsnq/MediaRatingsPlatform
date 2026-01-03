@@ -2,17 +2,14 @@ package org.example.application.controller;
 
 import org.example.application.common.Controller;
 import org.example.application.model.Media;
-import org.example.application.model.Token;
 import org.example.application.services.AuthService;
 import org.example.application.services.FavoriteService;
 import org.example.server.http.Method;
 import org.example.server.http.Request;
 import org.example.server.http.Response;
 import org.example.server.http.Status;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.List;
-import java.util.Optional;
 
 public class FavoriteController extends Controller {
 
@@ -26,7 +23,7 @@ public class FavoriteController extends Controller {
 
     @Override
     public Response handle(Request request) {
-        String userId = getUserIdFromRequest(request);
+        String userId = getUserIdFromRequest(request, authService);
         if (userId == null) {
             return status(Status.UNAUTHORIZED);
         }
@@ -58,9 +55,8 @@ public class FavoriteController extends Controller {
     }
 
     private Response addFavorite(Request request, String userId) {
-        String[] pathParts = request.getPath().split("/");
-        if (pathParts.length >= 3) {
-            String mediaId = pathParts[2];
+        String mediaId = extractPathSegment(request, 2);
+        if (mediaId != null) {
             favoriteService.addFavorite(userId, mediaId);
             return status(Status.CREATED);
         }
@@ -68,31 +64,12 @@ public class FavoriteController extends Controller {
     }
 
     private Response removeFavorite(Request request, String userId) {
-        String[] pathParts = request.getPath().split("/");
-        if (pathParts.length >= 3) {
-            String mediaId = pathParts[2];
+        String mediaId = extractPathSegment(request, 2);
+        if (mediaId != null) {
             favoriteService.removeFavorite(userId, mediaId);
             return status(Status.OK);
         }
         return status(Status.BAD_REQUEST);
-    }
-
-    private String getUserIdFromRequest(Request request) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            var requestData = mapper.readTree(request.getBody());
-            if (requestData.has("token")) {
-                String tokenValue = requestData.get("token").asText();
-                Optional<Token> token = authService.getToken(tokenValue);
-                if (token.isEmpty() || token.get().isExpired()) {
-                    return null;
-                }
-                return token.get().getUserId();
-            }
-        } catch (Exception e) {
-            // Ignore
-        }
-        return null;
     }
 }
 

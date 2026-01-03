@@ -1,10 +1,14 @@
 package org.example.server.http;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class Request {
 
     private Method method;
     private String path;
     private String body;
+    private Map<String, String> params = new HashMap<>();
 
     public Request() {
     }
@@ -31,5 +35,13 @@ public class Request {
 
     public void setBody(String body) {
         this.body = body;
+    }
+
+    public Map<String, String> getParams() {
+        return params;
+    }
+
+    public void setParams(Map<String, String> params) {
+        this.params = params;
     }
 }

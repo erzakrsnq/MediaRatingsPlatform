@@ -1,11 +1,15 @@
 package org.example.application.common;
 import org.example.application.exception.JsonConversionException;
 import org.example.application.exception.NotJsonBodyException;
+import org.example.application.model.Token;
+import org.example.application.services.AuthService;
 import org.example.server.http.ContentType;
 import org.example.server.http.Request;
 import org.example.server.http.Response;
 import org.example.server.http.Status;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.Optional;
 
 public abstract class Controller {
 
@@ -52,5 +56,31 @@ public abstract class Controller {
         response.setContentType(contentType);
         response.setBody(body);
         return response;
+    }
+
+    protected String extractPathSegment(Request request, int index) {
+        String[] pathParts = request.getPath().split("/");
+        if (pathParts.length > index) {
+            return pathParts[index];
+        }
+        return null;
+    }
+
+    protected String getUserIdFromRequest(Request request, AuthService authService) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            var requestData = mapper.readTree(request.getBody());
+            if (requestData.has("token")) {
+                String tokenValue = requestData.get("token").asText();
+                Optional<Token> token = authService.getToken(tokenValue);
+                if (token.isEmpty() || token.get().isExpired()) {
+                    return null;
+                }
+                return token.get().getUserId();
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return null;
     }
 }

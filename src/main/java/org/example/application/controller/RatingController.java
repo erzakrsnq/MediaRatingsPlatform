@@ -55,10 +55,8 @@ public class RatingController extends Controller {
     }
 
     private Response read(Request request) {
-        // Extract ID from path like /ratings/123
-        String[] pathParts = request.getPath().split("/");
-        if (pathParts.length >= 3) {
-            String id = pathParts[2];
+        String id = extractPathSegment(request, 2);
+        if (id != null) {
             Rating rating = ratingService.get(id);
             return json(rating, Status.OK);
         }
@@ -66,10 +64,8 @@ public class RatingController extends Controller {
     }
 
     private Response readByMediaId(Request request) {
-        // Extract mediaId from path like /ratings/media/123
-        String[] pathParts = request.getPath().split("/");
-        if (pathParts.length >= 4) {
-            String mediaId = pathParts[3];
+        String mediaId = extractPathSegment(request, 3);
+        if (mediaId != null) {
             List<Rating> ratings = ratingService.getByMediaId(mediaId);
             return json(ratings, Status.OK);
         }
@@ -77,10 +73,8 @@ public class RatingController extends Controller {
     }
 
     private Response readByUserId(Request request) {
-        // Extract userId from path like /ratings/user/123
-        String[] pathParts = request.getPath().split("/");
-        if (pathParts.length >= 4) {
-            String userId = pathParts[3];
+        String userId = extractPathSegment(request, 3);
+        if (userId != null) {
             List<Rating> ratings = ratingService.getByUserId(userId);
             return json(ratings, Status.OK);
         }
@@ -94,10 +88,8 @@ public class RatingController extends Controller {
     }
 
     private Response update(Request request) {
-        // Extract ID from path like /ratings/123
-        String[] pathParts = request.getPath().split("/");
-        if (pathParts.length >= 3) {
-            String id = pathParts[2];
+        String id = extractPathSegment(request, 2);
+        if (id != null) {
             Rating update = toObject(request.getBody(), Rating.class);
             Rating rating = ratingService.update(id, update);
             return json(rating, Status.OK);
@@ -106,10 +98,8 @@ public class RatingController extends Controller {
     }
 
     private Response delete(Request request) {
-        // Extract ID from path like /ratings/123
-        String[] pathParts = request.getPath().split("/");
-        if (pathParts.length >= 3) {
-            String id = pathParts[2];
+        String id = extractPathSegment(request, 2);
+        if (id != null) {
             Rating rating = ratingService.delete(id);
             if (rating != null) {
                 return json(rating, Status.OK);

@@ -120,6 +120,52 @@ public class DbMediaRepository implements MediaRepository {
         }
     }
 
+    @Override
+    public List<Media> search(String title, String genre, String type, Double minRating) {
+        List<Media> mediaList = new ArrayList<>();
+        StringBuilder query = new StringBuilder("SELECT * FROM media WHERE 1=1");
+        
+        if (title != null && !title.isEmpty()) {
+            query.append(" AND LOWER(title) LIKE ?");
+        }
+        if (genre != null && !genre.isEmpty()) {
+            query.append(" AND LOWER(genre) = ?");
+        }
+        if (type != null && !type.isEmpty()) {
+            query.append(" AND LOWER(type) = ?");
+        }
+        if (minRating != null) {
+            query.append(" AND average_rating >= ?");
+        }
+        
+        try (Connection conn = connectionPool.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query.toString())) {
+            
+            int paramIndex = 1;
+            if (title != null && !title.isEmpty()) {
+                pstmt.setString(paramIndex++, "%" + title.toLowerCase() + "%");
+            }
+            if (genre != null && !genre.isEmpty()) {
+                pstmt.setString(paramIndex++, genre.toLowerCase());
+            }
+            if (type != null && !type.isEmpty()) {
+                pstmt.setString(paramIndex++, type.toLowerCase());
+            }
+            if (minRating != null) {
+                pstmt.setDouble(paramIndex++, minRating);
+            }
+            
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    mediaList.add(mapResultSetToMedia(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return mediaList;
+    }
+
     private Media mapResultSetToMedia(ResultSet rs) throws SQLException {
         Media media = new Media();
         media.setId(rs.getString("id"));

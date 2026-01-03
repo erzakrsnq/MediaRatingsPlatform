@@ -45,10 +45,8 @@ public class Usercontroller extends Controller {
     }
 
     private Response read(Request request) {
-        // Extract ID from path like /users/123
-        String[] pathParts = request.getPath().split("/");
-        if (pathParts.length >= 3) {
-            String id = pathParts[2];
+        String id = extractPathSegment(request, 2);
+        if (id != null) {
             User user = userService.get(id);
             return json(user, Status.OK);
         }
