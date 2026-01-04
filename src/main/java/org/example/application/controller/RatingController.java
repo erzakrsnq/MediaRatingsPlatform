@@ -2,20 +2,28 @@ package org.example.application.controller;
 
 import org.example.application.common.Controller;
 import org.example.application.model.Rating;
+import org.example.application.services.AuthService;
+import org.example.application.services.RatingLikeService;
 import org.example.application.services.RatingService;
 import org.example.server.http.Method;
 import org.example.server.http.Request;
 import org.example.server.http.Response;
 import org.example.server.http.Status;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class RatingController extends Controller {
 
     private final RatingService ratingService;
+    private final RatingLikeService ratingLikeService;
+    private final AuthService authService;
 
-    public RatingController(RatingService ratingService) {
+    public RatingController(RatingService ratingService, RatingLikeService ratingLikeService, AuthService authService) {
         this.ratingService = ratingService;
+        this.ratingLikeService = ratingLikeService;
+        this.authService = authService;
     }
 
     @Override
@@ -35,6 +43,9 @@ public class RatingController extends Controller {
         }
 
         if (request.getMethod().equals(Method.POST.getVerb())) {
+            if (request.getPath().startsWith("/ratings/") && request.getPath().endsWith("/like")) {
+                return likeRating(request);
+            }
             return create(request);
         }
 
@@ -46,6 +57,9 @@ public class RatingController extends Controller {
         }
 
         if (request.getMethod().equals(Method.DELETE.getVerb())) {
+            if (request.getPath().startsWith("/ratings/") && request.getPath().endsWith("/like")) {
+                return unlikeRating(request);
+            }
             return delete(request);
         }
 
@@ -120,6 +134,56 @@ public class RatingController extends Controller {
             if (rating != null) {
                 return json(rating, Status.OK);
             } else {
+                return status(Status.NOT_FOUND);
+            }
+        }
+        return status(Status.BAD_REQUEST);
+    }
+
+    private Response likeRating(Request request) {
+        String userId = getUserIdFromRequest(request, authService);
+        if (userId == null) {
+            return status(Status.UNAUTHORIZED);
+        }
+
+        String ratingId = extractPathSegment(request, 2);
+        if (ratingId != null) {
+            try {
+                // Prüfen ob Rating existiert
+                ratingService.get(ratingId);
+                ratingLikeService.likeRating(ratingId, userId);
+                
+                Map<String, Object> response = new HashMap<>();
+                response.put("ratingId", ratingId);
+                response.put("liked", true);
+                response.put("likeCount", ratingLikeService.getLikeCount(ratingId));
+                return json(response, Status.OK);
+            } catch (Exception e) {
+                return status(Status.NOT_FOUND);
+            }
+        }
+        return status(Status.BAD_REQUEST);
+    }
+
+    private Response unlikeRating(Request request) {
+        String userId = getUserIdFromRequest(request, authService);
+        if (userId == null) {
+            return status(Status.UNAUTHORIZED);
+        }
+
+        String ratingId = extractPathSegment(request, 2);
+        if (ratingId != null) {
+            try {
+                // Prüfen ob Rating existiert
+                ratingService.get(ratingId);
+                ratingLikeService.unlikeRating(ratingId, userId);
+                
+                Map<String, Object> response = new HashMap<>();
+                response.put("ratingId", ratingId);
+                response.put("liked", false);
+                response.put("likeCount", ratingLikeService.getLikeCount(ratingId));
+                return json(response, Status.OK);
+            } catch (Exception e) {
                 return status(Status.NOT_FOUND);
             }
         }

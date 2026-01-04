@@ -12,11 +12,13 @@ import org.example.application.common.ConnectionPool;
 import org.example.application.repository.DbUserRepository;
 import org.example.application.repository.DbMediaRepository;
 import org.example.application.repository.DbRatingRepository;
+import org.example.application.repository.DbRatingLikeRepository;
 import org.example.application.repository.DbFavoriteRepository;
 import org.example.application.services.UserService;
 import org.example.application.services.AuthService;
 import org.example.application.services.MediaService;
 import org.example.application.services.RatingService;
+import org.example.application.services.RatingLikeService;
 import org.example.application.services.FavoriteService;
 import org.example.application.exception.ExceptionMapper;
 import org.example.application.exception.EntityNotFoundException;
@@ -49,6 +51,7 @@ public class MRPApplication implements Application {
         DbUserRepository userRepository = new DbUserRepository(connectionPool);
         DbMediaRepository mediaRepository = new DbMediaRepository(connectionPool);
         DbRatingRepository ratingRepository = new DbRatingRepository(connectionPool);
+        DbRatingLikeRepository ratingLikeRepository = new DbRatingLikeRepository(connectionPool);
         DbFavoriteRepository favoriteRepository = new DbFavoriteRepository(connectionPool);
 
         // Initialize services
@@ -56,6 +59,7 @@ public class MRPApplication implements Application {
         AuthService authService = new AuthService(userService);
         MediaService mediaService = new MediaService(mediaRepository);
         RatingService ratingService = new RatingService(ratingRepository);
+        RatingLikeService ratingLikeService = new RatingLikeService(ratingLikeRepository);
         FavoriteService favoriteService = new FavoriteService(favoriteRepository, mediaRepository);
 
         // Add User routes
@@ -68,7 +72,7 @@ public class MRPApplication implements Application {
         router.addRoute("/media", new MediaController(mediaService, authService));
         
         // Add Rating routes
-        router.addRoute("/ratings", new RatingController(ratingService));
+        router.addRoute("/ratings", new RatingController(ratingService, ratingLikeService, authService));
         
         // Add Favorite routes
         router.addRoute("/favorites", new FavoriteController(favoriteService, authService));
