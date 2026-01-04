@@ -160,14 +160,82 @@ if [ "$USER_ID" != "null" ] && [ "$USER_ID" != "" ] && [ "$MEDIA_ID" != "null" ]
         curl -s "$BASE_URL/ratings/$RATING_ID" | jq '.' 2>/dev/null || echo "Response: $(curl -s "$BASE_URL/ratings/$RATING_ID")"
         
         print_test "PUT /ratings/$RATING_ID (update rating)"
-        curl -s -X PUT "$BASE_URL/ratings/$RATING_ID" \
+        UPDATE_RESPONSE=$(curl -s -X PUT "$BASE_URL/ratings/$RATING_ID" \
           -H "Content-Type: application/json" \
           -d "{
             \"userId\": \"$USER_ID\",
             \"mediaId\": \"$MEDIA_ID\",
             \"rating\": 10,
             \"comment\": \"Perfect movie! One of the best films ever made. UPDATED\"
-          }" | jq '.' 2>/dev/null || echo "Response: $(curl -s -X PUT "$BASE_URL/ratings/$RATING_ID" -H "Content-Type: application/json" -d "{\"userId\": \"$USER_ID\", \"mediaId\": \"$MEDIA_ID\", \"rating\": 10, \"comment\": \"Perfect movie! One of the best films ever made. UPDATED\"}")"
+          }")
+        echo "$UPDATE_RESPONSE" | jq '.' 2>/dev/null || echo "Response: $UPDATE_RESPONSE"
+        
+        # Test: Kommentar-Bestätigung
+        print_test "Check commentConfirmed after creation (should be false)"
+        COMMENT_CONFIRMED=$(echo "$RATING_RESPONSE" | jq -r '.commentConfirmed' 2>/dev/null)
+        if [ "$COMMENT_CONFIRMED" = "false" ]; then
+            print_success "commentConfirmed is false after creation (correct)"
+        else
+            print_error "commentConfirmed should be false, but was: $COMMENT_CONFIRMED"
+        fi
+        
+        print_test "PUT /ratings/$RATING_ID/confirm (confirm comment)"
+        CONFIRM_RESPONSE=$(curl -s -X PUT "$BASE_URL/ratings/$RATING_ID/confirm" \
+          -H "Content-Type: application/json")
+        echo "$CONFIRM_RESPONSE" | jq '.' 2>/dev/null || echo "Response: $CONFIRM_RESPONSE"
+        
+        CONFIRMED_STATUS=$(echo "$CONFIRM_RESPONSE" | jq -r '.commentConfirmed' 2>/dev/null)
+        if [ "$CONFIRMED_STATUS" = "true" ]; then
+            print_success "Comment successfully confirmed (commentConfirmed: true)"
+        else
+            print_error "Comment should be confirmed, but commentConfirmed is: $CONFIRMED_STATUS"
+        fi
+        
+        print_test "GET /ratings/$RATING_ID (verify comment is confirmed)"
+        GET_CONFIRMED=$(curl -s "$BASE_URL/ratings/$RATING_ID" | jq -r '.commentConfirmed' 2>/dev/null)
+        if [ "$GET_CONFIRMED" = "true" ]; then
+            print_success "Comment confirmed status verified (commentConfirmed: true)"
+        else
+            print_error "Comment should be confirmed, but was: $GET_CONFIRMED"
+        fi
+        
+        print_test "PUT /ratings/$RATING_ID (update comment - should reset confirmation)"
+        UPDATE_COMMENT_RESPONSE=$(curl -s -X PUT "$BASE_URL/ratings/$RATING_ID" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"userId\": \"$USER_ID\",
+            \"mediaId\": \"$MEDIA_ID\",
+            \"rating\": 10,
+            \"comment\": \"Updated comment: Even better after watching again!\"
+          }")
+        echo "$UPDATE_COMMENT_RESPONSE" | jq '.' 2>/dev/null || echo "Response: $UPDATE_COMMENT_RESPONSE"
+        
+        UPDATED_CONFIRMED=$(echo "$UPDATE_COMMENT_RESPONSE" | jq -r '.commentConfirmed' 2>/dev/null)
+        if [ "$UPDATED_CONFIRMED" = "false" ]; then
+            print_success "Confirmation reset after comment update (commentConfirmed: false)"
+        else
+            print_error "Confirmation should be reset, but commentConfirmed is: $UPDATED_CONFIRMED"
+        fi
+        
+        print_test "PUT /ratings/$RATING_ID/confirm (confirm again)"
+        curl -s -X PUT "$BASE_URL/ratings/$RATING_ID/confirm" \
+          -H "Content-Type: application/json" | jq '.' 2>/dev/null || echo "Response: $(curl -s -X PUT "$BASE_URL/ratings/$RATING_ID/confirm" -H "Content-Type: application/json")"
+        
+        print_test "PUT /ratings/$RATING_ID (update rating only, keep comment - should keep confirmation)"
+        UPDATE_RATING_ONLY=$(curl -s -X PUT "$BASE_URL/ratings/$RATING_ID" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"userId\": \"$USER_ID\",
+            \"mediaId\": \"$MEDIA_ID\",
+            \"rating\": 9,
+            \"comment\": \"Updated comment: Even better after watching again!\"
+          }")
+        RATING_ONLY_CONFIRMED=$(echo "$UPDATE_RATING_ONLY" | jq -r '.commentConfirmed' 2>/dev/null)
+        if [ "$RATING_ONLY_CONFIRMED" = "true" ]; then
+            print_success "Confirmation kept when comment unchanged (commentConfirmed: true)"
+        else
+            print_error "Confirmation should be kept, but commentConfirmed is: $RATING_ONLY_CONFIRMED"
+        fi
     fi
     
     print_test "GET /ratings/media/$MEDIA_ID (ratings for specific media)"

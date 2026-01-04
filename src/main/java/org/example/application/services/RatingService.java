@@ -18,6 +18,9 @@ public class RatingService {
         // Generate ID
         rating.setId(UUID.randomUUID().toString());
         
+        // Neue Kommentare sind standardmäßig nicht bestätigt
+        rating.setCommentConfirmed(false);
+        
         return ratingRepository.save(rating);
     }
 
@@ -43,9 +46,24 @@ public class RatingService {
                 .orElseThrow(EntityNotFoundException::new);
 
         rating.setRating(update.getRating());
+        
+        // Wenn Kommentar geändert wurde, Bestätigung zurücksetzen
+        // Sonst bestehenden Bestätigungsstatus beibehalten
+        if (update.getComment() != null && !update.getComment().equals(rating.getComment())) {
+            rating.setCommentConfirmed(false);
+        }
+        // Wenn Kommentar nicht geändert wurde, bleibt commentConfirmed unverändert
         rating.setComment(update.getComment());
 
         return ratingRepository.save(rating);
+    }
+
+    public Rating confirmComment(String id) {
+        Rating rating = ratingRepository.confirmComment(id);
+        if (rating == null) {
+            throw new EntityNotFoundException();
+        }
+        return rating;
     }
 
     public Rating delete(String id) {

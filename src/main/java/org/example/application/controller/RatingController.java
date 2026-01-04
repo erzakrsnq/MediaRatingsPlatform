@@ -39,6 +39,9 @@ public class RatingController extends Controller {
         }
 
         if (request.getMethod().equals(Method.PUT.getVerb())) {
+            if (request.getPath().startsWith("/ratings/") && request.getPath().endsWith("/confirm")) {
+                return confirmComment(request);
+            }
             return update(request);
         }
 
@@ -93,6 +96,19 @@ public class RatingController extends Controller {
             Rating update = toObject(request.getBody(), Rating.class);
             Rating rating = ratingService.update(id, update);
             return json(rating, Status.OK);
+        }
+        return status(Status.BAD_REQUEST);
+    }
+
+    private Response confirmComment(Request request) {
+        String id = extractPathSegment(request, 2);
+        if (id != null) {
+            try {
+                Rating rating = ratingService.confirmComment(id);
+                return json(rating, Status.OK);
+            } catch (Exception e) {
+                return status(Status.NOT_FOUND);
+            }
         }
         return status(Status.BAD_REQUEST);
     }

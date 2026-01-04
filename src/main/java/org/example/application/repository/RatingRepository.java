@@ -12,4 +12,5 @@ public interface RatingRepository {
     List<Rating> findByUserId(String userId);
     Rating save(Rating rating);
     Rating delete(String id);
+    Rating confirmComment(String id);
 }

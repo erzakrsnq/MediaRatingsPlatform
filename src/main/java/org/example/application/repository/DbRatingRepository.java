@@ -22,6 +22,7 @@ public class DbRatingRepository implements RatingRepository {
     private static final String INSERT = "INSERT INTO ratings (id, user_id, media_id, rating, comment, comment_confirmed) VALUES (?, ?, ?, ?, ?, ?)";
     private static final String UPDATE = "UPDATE ratings SET rating = ?, comment = ?, comment_confirmed = ? WHERE id = ?";
     private static final String DELETE = "DELETE FROM ratings WHERE id = ?";
+    private static final String CONFIRM_COMMENT = "UPDATE ratings SET comment_confirmed = TRUE WHERE id = ?";
 
     public DbRatingRepository(ConnectionPool connectionPool) {
         this.connectionPool = connectionPool;
@@ -106,26 +107,29 @@ public class DbRatingRepository implements RatingRepository {
 
     @Override
     public Rating save(Rating rating) {
+        Optional<Rating> existing = find(rating.getId());
+        boolean isUpdate = existing.isPresent();
+        
         try (
                 Connection conn = connectionPool.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(
-                        find(rating.getId()).isPresent() ? UPDATE : INSERT
+                        isUpdate ? UPDATE : INSERT
                 )
         ) {
-            if (find(rating.getId()).isPresent()) {
-                // Update
+            if (isUpdate) {
+               
                 pstmt.setInt(1, rating.getRating());
                 pstmt.setString(2, rating.getComment());
-                pstmt.setBoolean(3, false); // comment_confirmed - später implementieren
+                pstmt.setBoolean(3, rating.isCommentConfirmed());
                 pstmt.setString(4, rating.getId());
             } else {
-                // Insert
+                // Insert - neue Kommentare sind standardmäßig nicht bestätigt
                 pstmt.setString(1, rating.getId());
                 pstmt.setString(2, rating.getUserId());
                 pstmt.setString(3, rating.getMediaId());
                 pstmt.setInt(4, rating.getRating());
                 pstmt.setString(5, rating.getComment());
-                pstmt.setBoolean(6, false); // comment_confirmed
+                pstmt.setBoolean(6, rating.isCommentConfirmed());
             }
             pstmt.executeUpdate();
             return rating;
@@ -153,6 +157,27 @@ public class DbRatingRepository implements RatingRepository {
         }
     }
 
+    @Override
+    public Rating confirmComment(String id) {
+        Optional<Rating> rating = find(id);
+        if (rating.isEmpty()) {
+            return null;
+        }
+
+        try (
+                Connection conn = connectionPool.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(CONFIRM_COMMENT)
+        ) {
+            pstmt.setString(1, id);
+            pstmt.executeUpdate();
+            
+            // Return updated rating
+            return find(id).orElse(null);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private Rating mapResultSetToRating(ResultSet rs) throws SQLException {
         Rating rating = new Rating();
         rating.setId(rs.getString("id"));
@@ -160,6 +185,7 @@ public class DbRatingRepository implements RatingRepository {
         rating.setMediaId(rs.getString("media_id"));
         rating.setRating(rs.getInt("rating"));
         rating.setComment(rs.getString("comment"));
+        rating.setCommentConfirmed(rs.getBoolean("comment_confirmed"));
         return rating;
     }
 }

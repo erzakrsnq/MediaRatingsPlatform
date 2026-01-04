@@ -6,6 +6,7 @@ public class Rating {
     private String mediaId;
     private int rating;
     private String comment;
+    private boolean commentConfirmed;
 
     public Rating() {
     }
@@ -48,5 +49,13 @@ public class Rating {
 
     public void setComment(String comment) {
         this.comment = comment;
+    }
+
+    public boolean isCommentConfirmed() {
+        return commentConfirmed;
+    }
+
+    public void setCommentConfirmed(boolean commentConfirmed) {
+        this.commentConfirmed = commentConfirmed;
     }
 }
