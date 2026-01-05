@@ -58,7 +58,7 @@ public class MRPApplication implements Application {
         UserService userService = new UserService(userRepository);
         AuthService authService = new AuthService(userService);
         MediaService mediaService = new MediaService(mediaRepository);
-        RatingService ratingService = new RatingService(ratingRepository);
+        RatingService ratingService = new RatingService(ratingRepository, mediaRepository);
         RatingLikeService ratingLikeService = new RatingLikeService(ratingLikeRepository);
         FavoriteService favoriteService = new FavoriteService(favoriteRepository, mediaRepository);
 

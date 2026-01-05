@@ -238,11 +238,105 @@ if [ "$USER_ID" != "null" ] && [ "$USER_ID" != "" ] && [ "$MEDIA_ID" != "null" ]
         fi
     fi
     
-    print_test "GET /ratings/media/$MEDIA_ID (ratings for specific media)"
-    curl -s "$BASE_URL/ratings/media/$MEDIA_ID" | jq '.' 2>/dev/null || echo "Response: $(curl -s "$BASE_URL/ratings/media/$MEDIA_ID")"
-    
-    print_test "GET /ratings/user/$USER_ID (ratings by specific user)"
-    curl -s "$BASE_URL/ratings/user/$USER_ID" | jq '.' 2>/dev/null || echo "Response: $(curl -s "$BASE_URL/ratings/user/$USER_ID")"
+        # Test: Kommentar-Filterung (unbestätigte Kommentare sollten null sein)
+        print_test "GET /ratings/media/$MEDIA_ID (check unconfirmed comment is null)"
+        RATINGS_BEFORE_CONFIRM=$(curl -s "$BASE_URL/ratings/media/$MEDIA_ID")
+        echo "$RATINGS_BEFORE_CONFIRM" | jq '.' 2>/dev/null || echo "Response: $RATINGS_BEFORE_CONFIRM"
+        
+        # Erstelle ein neues Rating mit unbestätigtem Kommentar
+        print_test "POST /ratings (create rating with unconfirmed comment)"
+        NEW_RATING_RESPONSE=$(curl -s -X POST "$BASE_URL/ratings" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"userId\": \"$USER_ID\",
+            \"mediaId\": \"$MEDIA_ID\",
+            \"rating\": 8,
+            \"comment\": \"This comment should be hidden until confirmed\"
+          }")
+        NEW_RATING_ID=$(echo "$NEW_RATING_RESPONSE" | jq -r '.id' 2>/dev/null)
+        
+        print_test "GET /ratings/media/$MEDIA_ID (unconfirmed comment should be null)"
+        RATINGS_WITH_UNCONFIRMED=$(curl -s "$BASE_URL/ratings/media/$MEDIA_ID")
+        echo "$RATINGS_WITH_UNCONFIRMED" | jq '.' 2>/dev/null || echo "Response: $RATINGS_WITH_UNCONFIRMED"
+        
+        # Prüfe ob der unbestätigte Kommentar null ist
+        UNCONFIRMED_COMMENT=$(echo "$RATINGS_WITH_UNCONFIRMED" | jq -r ".[] | select(.id == \"$NEW_RATING_ID\") | .comment" 2>/dev/null)
+        if [ "$UNCONFIRMED_COMMENT" = "null" ]; then
+            print_success "Unconfirmed comment correctly hidden (null)"
+        else
+            print_error "Unconfirmed comment should be null, but was: $UNCONFIRMED_COMMENT"
+        fi
+        
+        # Test: Durchschnittsberechnung
+        print_test "GET /media/$MEDIA_ID (check averageRating after rating creation)"
+        MEDIA_AFTER_RATING=$(curl -s "$BASE_URL/media/$MEDIA_ID")
+        echo "$MEDIA_AFTER_RATING" | jq '.' 2>/dev/null || echo "Response: $MEDIA_AFTER_RATING"
+        AVERAGE_RATING=$(echo "$MEDIA_AFTER_RATING" | jq -r '.averageRating' 2>/dev/null)
+        if [ "$AVERAGE_RATING" != "null" ] && [ "$AVERAGE_RATING" != "0" ]; then
+            print_success "Average rating calculated: $AVERAGE_RATING"
+        else
+            print_error "Average rating should be calculated, but was: $AVERAGE_RATING"
+        fi
+        
+        # Test: Like-Funktionalität (benötigt Token)
+        if [ "$TOKEN" != "null" ] && [ "$TOKEN" != "" ]; then
+            print_test "POST /ratings/$RATING_ID/like (like rating)"
+            LIKE_RESPONSE=$(curl -s -X POST "$BASE_URL/ratings/$RATING_ID/like" \
+              -H "Content-Type: application/json" \
+              -d "{\"token\": \"$TOKEN\"}")
+            echo "$LIKE_RESPONSE" | jq '.' 2>/dev/null || echo "Response: $LIKE_RESPONSE"
+            
+            LIKED_STATUS=$(echo "$LIKE_RESPONSE" | jq -r '.liked' 2>/dev/null)
+            LIKE_COUNT=$(echo "$LIKE_RESPONSE" | jq -r '.likeCount' 2>/dev/null)
+            if [ "$LIKED_STATUS" = "true" ] && [ "$LIKE_COUNT" != "null" ]; then
+                print_success "Rating liked successfully (liked: $LIKED_STATUS, count: $LIKE_COUNT)"
+            else
+                print_error "Like failed or unexpected response"
+            fi
+            
+            print_test "DELETE /ratings/$RATING_ID/like (unlike rating)"
+            UNLIKE_RESPONSE=$(curl -s -X DELETE "$BASE_URL/ratings/$RATING_ID/like" \
+              -H "Content-Type: application/json" \
+              -d "{\"token\": \"$TOKEN\"}")
+            echo "$UNLIKE_RESPONSE" | jq '.' 2>/dev/null || echo "Response: $UNLIKE_RESPONSE"
+            
+            UNLIKED_STATUS=$(echo "$UNLIKE_RESPONSE" | jq -r '.liked' 2>/dev/null)
+            UNLIKE_COUNT=$(echo "$UNLIKE_RESPONSE" | jq -r '.likeCount' 2>/dev/null)
+            if [ "$UNLIKED_STATUS" = "false" ]; then
+                print_success "Rating unliked successfully (liked: $UNLIKED_STATUS, count: $UNLIKE_COUNT)"
+            else
+                print_error "Unlike failed or unexpected response"
+            fi
+        else
+            print_error "Cannot test likes - missing token"
+        fi
+        
+        print_test "GET /ratings/media/$MEDIA_ID (ratings for specific media)"
+        curl -s "$BASE_URL/ratings/media/$MEDIA_ID" | jq '.' 2>/dev/null || echo "Response: $(curl -s "$BASE_URL/ratings/media/$MEDIA_ID")"
+        
+        print_test "GET /ratings/user/$USER_ID (ratings by specific user)"
+        curl -s "$BASE_URL/ratings/user/$USER_ID" | jq '.' 2>/dev/null || echo "Response: $(curl -s "$BASE_URL/ratings/user/$USER_ID")"
+        
+        # Test: Durchschnittsberechnung nach Update
+        print_test "PUT /ratings/$RATING_ID (update rating - should recalculate average)"
+        UPDATE_FOR_AVG=$(curl -s -X PUT "$BASE_URL/ratings/$RATING_ID" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"userId\": \"$USER_ID\",
+            \"mediaId\": \"$MEDIA_ID\",
+            \"rating\": 5,
+            \"comment\": \"Updated rating to test average calculation\"
+          }")
+        
+        print_test "GET /media/$MEDIA_ID (check averageRating after rating update)"
+        MEDIA_AFTER_UPDATE=$(curl -s "$BASE_URL/media/$MEDIA_ID")
+        NEW_AVERAGE=$(echo "$MEDIA_AFTER_UPDATE" | jq -r '.averageRating' 2>/dev/null)
+        echo "Average rating after update: $NEW_AVERAGE"
+        if [ "$NEW_AVERAGE" != "$AVERAGE_RATING" ]; then
+            print_success "Average rating updated from $AVERAGE_RATING to $NEW_AVERAGE"
+        else
+            print_error "Average rating should have changed, but stayed at $AVERAGE_RATING"
+        fi
 else
     print_error "Cannot test ratings - missing user or media ID"
 fi
@@ -253,8 +347,29 @@ curl -s "$BASE_URL/ratings" | jq '.' 2>/dev/null || echo "Response: $(curl -s "$
 # Test 6: DELETE Operations
 print_section "DELETE Operations"
 
+# Test: Durchschnittsberechnung nach Delete
+if [ "$MEDIA_ID" != "null" ] && [ "$MEDIA_ID" != "" ]; then
+    print_test "GET /media/$MEDIA_ID (check averageRating before rating deletion)"
+    MEDIA_BEFORE_DELETE=$(curl -s "$BASE_URL/media/$MEDIA_ID")
+    AVERAGE_BEFORE_DELETE=$(echo "$MEDIA_BEFORE_DELETE" | jq -r '.averageRating' 2>/dev/null)
+    echo "Average rating before delete: $AVERAGE_BEFORE_DELETE"
+fi
+
 print_test "DELETE /ratings/$RATING_ID"
 curl -s -w "HTTP Status: %{http_code}\n" -X DELETE "$BASE_URL/ratings/$RATING_ID" | tail -1
+
+# Test: Durchschnittsberechnung nach Delete
+if [ "$MEDIA_ID" != "null" ] && [ "$MEDIA_ID" != "" ]; then
+    print_test "GET /media/$MEDIA_ID (check averageRating after rating deletion)"
+    MEDIA_AFTER_DELETE=$(curl -s "$BASE_URL/media/$MEDIA_ID")
+    AVERAGE_AFTER_DELETE=$(echo "$MEDIA_AFTER_DELETE" | jq -r '.averageRating' 2>/dev/null)
+    echo "Average rating after delete: $AVERAGE_AFTER_DELETE"
+    if [ "$AVERAGE_AFTER_DELETE" != "$AVERAGE_BEFORE_DELETE" ]; then
+        print_success "Average rating updated after deletion: $AVERAGE_AFTER_DELETE"
+    else
+        print_error "Average rating should have changed after deletion"
+    fi
+fi
 
 print_test "DELETE /media/$MEDIA_ID"
 curl -s -w "HTTP Status: %{http_code}\n" -X DELETE "$BASE_URL/media/$MEDIA_ID" | tail -1

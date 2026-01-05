@@ -1,6 +1,8 @@
 package org.example.application.services;
 
+import org.example.application.model.Media;
 import org.example.application.model.Rating;
+import org.example.application.repository.MediaRepository;
 import org.example.application.repository.RatingRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,19 +22,29 @@ class RatingServiceTest {
 
     @Mock
     private RatingRepository ratingRepository;
+    
+    @Mock
+    private MediaRepository mediaRepository;
 
     private RatingService ratingService;
 
     @BeforeEach
     void setUp() {
-        ratingService = new RatingService(ratingRepository);
+        ratingService = new RatingService(ratingRepository, mediaRepository);
     }
 
     @Test
     void testCreate_GeneratesId() {
         // Arrange
         Rating rating = new Rating();
+        rating.setMediaId("media-123");
+        Media media = new Media();
+        media.setId("media-123");
+        
         when(ratingRepository.save(any(Rating.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(ratingRepository.findByMediaId("media-123")).thenReturn(List.of(rating));
+        when(mediaRepository.find("media-123")).thenReturn(Optional.of(media));
+        when(mediaRepository.save(any(Media.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
         Rating result = ratingService.create(rating);
@@ -40,6 +52,9 @@ class RatingServiceTest {
         // Assert
         assertNotNull(result.getId());
         verify(ratingRepository).save(any(Rating.class));
+        verify(ratingRepository).findByMediaId("media-123");
+        verify(mediaRepository).find("media-123");
+        verify(mediaRepository).save(any(Media.class));
     }
 
     @Test
@@ -61,8 +76,15 @@ class RatingServiceTest {
     void testUpdate_UpdatesRating() {
         // Arrange
         Rating existingRating = new Rating();
+        existingRating.setMediaId("media-123");
+        Media media = new Media();
+        media.setId("media-123");
+        
         when(ratingRepository.find("rating-123")).thenReturn(Optional.of(existingRating));
         when(ratingRepository.save(any(Rating.class))).thenReturn(existingRating);
+        when(ratingRepository.findByMediaId("media-123")).thenReturn(List.of(existingRating));
+        when(mediaRepository.find("media-123")).thenReturn(Optional.of(media));
+        when(mediaRepository.save(any(Media.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
         ratingService.update("rating-123", new Rating());
@@ -70,6 +92,9 @@ class RatingServiceTest {
         // Assert
         verify(ratingRepository).find("rating-123");
         verify(ratingRepository).save(any(Rating.class));
+        verify(ratingRepository).findByMediaId("media-123");
+        verify(mediaRepository).find("media-123");
+        verify(mediaRepository).save(any(Media.class));
     }
 
     @Test
