@@ -10,5 +10,5 @@ public interface MediaRepository {
     List<Media> findAll();
     Media save(Media media);
     Media delete(String id);
-    List<Media> search(String title, String genre, String type, Double minRating);
+    List<Media> search(String title, String genre, String type, Double minRating, Integer maxAgeRestriction);
 }

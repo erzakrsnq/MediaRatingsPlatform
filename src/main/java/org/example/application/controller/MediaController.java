@@ -53,6 +53,7 @@ public class MediaController extends Controller {
         String genre = params.get("genre");
         String type = params.get("type");
         String minRatingStr = params.get("minRating");
+        String maxAgeRestrictionStr = params.get("maxAgeRestriction");
         
         Double minRating = null;
         if (minRatingStr != null && !minRatingStr.isEmpty()) {
@@ -63,8 +64,17 @@ public class MediaController extends Controller {
             }
         }
         
-        if (title != null || genre != null || type != null || minRating != null) {
-            List<Media> media = mediaService.search(title, genre, type, minRating);
+        Integer maxAgeRestriction = null;
+        if (maxAgeRestrictionStr != null && !maxAgeRestrictionStr.isEmpty()) {
+            try {
+                maxAgeRestriction = Integer.parseInt(maxAgeRestrictionStr);
+            } catch (NumberFormatException e) {
+                return status(Status.BAD_REQUEST);
+            }
+        }
+        
+        if (title != null || genre != null || type != null || minRating != null || maxAgeRestriction != null) {
+            List<Media> media = mediaService.search(title, genre, type, minRating, maxAgeRestriction);
             return json(media, Status.OK);
         }
         

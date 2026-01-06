@@ -133,6 +133,124 @@ fi
 print_test "GET /media (should now contain the media)"
 curl -s "$BASE_URL/media" | jq '.' 2>/dev/null || echo "Response: $(curl -s "$BASE_URL/media")"
 
+# Test: Search and Filter with Age Restriction
+print_section "Media Search and Filter Tests"
+
+# Erstelle Media mit verschiedenen Age Restrictions
+if [ "$TOKEN" != "null" ] && [ "$TOKEN" != "" ]; then
+    print_test "POST /media (create media with age restriction 16)"
+    MEDIA_16_RESPONSE=$(curl -s -X POST "$BASE_URL/media" \
+      -H "Content-Type: application/json" \
+      -d "{
+        \"title\": \"Action Movie 16+\",
+        \"description\": \"An action movie for ages 16 and up\",
+        \"type\": \"Movie\",
+        \"genre\": \"Action\",
+        \"releaseYear\": 2020,
+        \"director\": \"John Director\",
+        \"actors\": \"Actor One, Actor Two\",
+        \"ageRestriction\": 16,
+        \"token\": \"$TOKEN\"
+      }")
+    echo "$MEDIA_16_RESPONSE" | jq '.' 2>/dev/null || echo "Response: $MEDIA_16_RESPONSE"
+    MEDIA_16_ID=$(echo "$MEDIA_16_RESPONSE" | jq -r '.id' 2>/dev/null)
+    
+    print_test "POST /media (create media with age restriction 18)"
+    MEDIA_18_RESPONSE=$(curl -s -X POST "$BASE_URL/media" \
+      -H "Content-Type: application/json" \
+      -d "{
+        \"title\": \"Thriller Movie 18+\",
+        \"description\": \"A thriller for ages 18 and up\",
+        \"type\": \"Movie\",
+        \"genre\": \"Thriller\",
+        \"releaseYear\": 2021,
+        \"director\": \"Jane Director\",
+        \"actors\": \"Actor Three, Actor Four\",
+        \"ageRestriction\": 18,
+        \"token\": \"$TOKEN\"
+      }")
+    echo "$MEDIA_18_RESPONSE" | jq '.' 2>/dev/null || echo "Response: $MEDIA_18_RESPONSE"
+    MEDIA_18_ID=$(echo "$MEDIA_18_RESPONSE" | jq -r '.id' 2>/dev/null)
+    
+    print_test "POST /media (create media without age restriction)"
+    MEDIA_NO_AGE_RESPONSE=$(curl -s -X POST "$BASE_URL/media" \
+      -H "Content-Type: application/json" \
+      -d "{
+        \"title\": \"Family Movie\",
+        \"description\": \"A family-friendly movie\",
+        \"type\": \"Movie\",
+        \"genre\": \"Family\",
+        \"releaseYear\": 2019,
+        \"director\": \"Family Director\",
+        \"actors\": \"Actor Five, Actor Six\",
+        \"token\": \"$TOKEN\"
+      }")
+    echo "$MEDIA_NO_AGE_RESPONSE" | jq '.' 2>/dev/null || echo "Response: $MEDIA_NO_AGE_RESPONSE"
+    MEDIA_NO_AGE_ID=$(echo "$MEDIA_NO_AGE_RESPONSE" | jq -r '.id' 2>/dev/null)
+    
+    # Test: Filter mit maxAgeRestriction
+    print_test "GET /media?maxAgeRestriction=16 (should return media with age restriction <= 16 or null)"
+    FILTER_16_RESPONSE=$(curl -s "$BASE_URL/media?maxAgeRestriction=16")
+    echo "$FILTER_16_RESPONSE" | jq '.' 2>/dev/null || echo "Response: $FILTER_16_RESPONSE"
+    
+    # Prüfe ob die richtigen Media zurückgegeben werden
+    FILTER_16_COUNT=$(echo "$FILTER_16_RESPONSE" | jq 'length' 2>/dev/null)
+    HAS_MEDIA_16=$(echo "$FILTER_16_RESPONSE" | jq ".[] | select(.id == \"$MEDIA_16_ID\")" 2>/dev/null)
+    HAS_MEDIA_18=$(echo "$FILTER_16_RESPONSE" | jq ".[] | select(.id == \"$MEDIA_18_ID\")" 2>/dev/null)
+    HAS_MEDIA_NO_AGE=$(echo "$FILTER_16_RESPONSE" | jq ".[] | select(.id == \"$MEDIA_NO_AGE_ID\")" 2>/dev/null)
+    
+    if [ -n "$HAS_MEDIA_16" ] && [ -z "$HAS_MEDIA_18" ] && [ -n "$HAS_MEDIA_NO_AGE" ]; then
+        print_success "Age restriction filter works correctly (maxAgeRestriction=16 includes 16+ and no restriction, excludes 18+)"
+    else
+        print_error "Age restriction filter may not work correctly"
+    fi
+    
+    print_test "GET /media?maxAgeRestriction=18 (should return all media)"
+    FILTER_18_RESPONSE=$(curl -s "$BASE_URL/media?maxAgeRestriction=18")
+    echo "$FILTER_18_RESPONSE" | jq '.' 2>/dev/null || echo "Response: $FILTER_18_RESPONSE"
+    
+    FILTER_18_COUNT=$(echo "$FILTER_18_RESPONSE" | jq 'length' 2>/dev/null)
+    HAS_MEDIA_18_IN_18=$(echo "$FILTER_18_RESPONSE" | jq ".[] | select(.id == \"$MEDIA_18_ID\")" 2>/dev/null)
+    
+    if [ -n "$HAS_MEDIA_18_IN_18" ]; then
+        print_success "Age restriction filter works correctly (maxAgeRestriction=18 includes 18+)"
+    else
+        print_error "Age restriction filter may not work correctly for maxAgeRestriction=18"
+    fi
+    
+    # Test: Kombinierte Filter
+    print_test "GET /media?genre=Action&maxAgeRestriction=16 (combined filters)"
+    COMBINED_FILTER=$(curl -s "$BASE_URL/media?genre=Action&maxAgeRestriction=16")
+    echo "$COMBINED_FILTER" | jq '.' 2>/dev/null || echo "Response: $COMBINED_FILTER"
+    
+    COMBINED_COUNT=$(echo "$COMBINED_FILTER" | jq 'length' 2>/dev/null)
+    if [ "$COMBINED_COUNT" != "null" ] && [ "$COMBINED_COUNT" != "" ]; then
+        print_success "Combined filter (genre + age restriction) works ($COMBINED_COUNT results)"
+    else
+        print_error "Combined filter may not work correctly"
+    fi
+    
+    # Cleanup: Lösche die Test-Media
+    print_test "Cleaning up test media..."
+    if [ "$MEDIA_16_ID" != "null" ] && [ "$MEDIA_16_ID" != "" ]; then
+        curl -s -X DELETE "$BASE_URL/media/$MEDIA_16_ID" \
+          -H "Content-Type: application/json" \
+          -d "{\"token\": \"$TOKEN\"}" > /dev/null
+    fi
+    if [ "$MEDIA_18_ID" != "null" ] && [ "$MEDIA_18_ID" != "" ]; then
+        curl -s -X DELETE "$BASE_URL/media/$MEDIA_18_ID" \
+          -H "Content-Type: application/json" \
+          -d "{\"token\": \"$TOKEN\"}" > /dev/null
+    fi
+    if [ "$MEDIA_NO_AGE_ID" != "null" ] && [ "$MEDIA_NO_AGE_ID" != "" ]; then
+        curl -s -X DELETE "$BASE_URL/media/$MEDIA_NO_AGE_ID" \
+          -H "Content-Type: application/json" \
+          -d "{\"token\": \"$TOKEN\"}" > /dev/null
+    fi
+else
+    print_error "Cannot test age restriction filter - missing token (need to login first)"
+fi
+
 # Test 5: Rating Endpoints
 print_section "Rating Endpoints"
 
@@ -317,6 +435,24 @@ if [ "$USER_ID" != "null" ] && [ "$USER_ID" != "" ] && [ "$MEDIA_ID" != "null" ]
         print_test "GET /ratings/user/$USER_ID (ratings by specific user)"
         curl -s "$BASE_URL/ratings/user/$USER_ID" | jq '.' 2>/dev/null || echo "Response: $(curl -s "$BASE_URL/ratings/user/$USER_ID")"
         
+        # Test: Eigene Rating-Historie
+        if [ "$TOKEN" != "null" ] && [ "$TOKEN" != "" ]; then
+            print_test "GET /ratings/my (own rating history - authenticated)"
+            MY_RATINGS=$(curl -s "$BASE_URL/ratings/my" \
+              -H "Content-Type: application/json" \
+              -d "{\"token\": \"$TOKEN\"}")
+            echo "$MY_RATINGS" | jq '.' 2>/dev/null || echo "Response: $MY_RATINGS"
+            
+            MY_RATINGS_COUNT=$(echo "$MY_RATINGS" | jq 'length' 2>/dev/null)
+            if [ "$MY_RATINGS_COUNT" != "null" ] && [ "$MY_RATINGS_COUNT" != "" ]; then
+                print_success "Own rating history retrieved ($MY_RATINGS_COUNT ratings)"
+            else
+                print_error "Could not retrieve own rating history"
+            fi
+        else
+            print_error "Cannot test /ratings/my - missing token"
+        fi
+        
         # Test: Durchschnittsberechnung nach Update
         print_test "PUT /ratings/$RATING_ID (update rating - should recalculate average)"
         UPDATE_FOR_AVG=$(curl -s -X PUT "$BASE_URL/ratings/$RATING_ID" \
@@ -406,6 +542,3 @@ curl -s -w "HTTP Status: %{http_code}\n" -X POST "$BASE_URL/users" \
   -d '{"invalid": json}' | tail -1
 
 echo -e "\nAPI Tests completed!"
-echo -e "Check the responses above for any errors."
-echo -e "Note: If you see 'jq: command not found', install jq for better JSON formatting:"
-echo -e "  brew install jq"

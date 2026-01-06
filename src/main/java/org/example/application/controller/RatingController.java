@@ -33,6 +33,9 @@ public class RatingController extends Controller {
             if (request.getPath().equals("/ratings")) {
                 return readAll();
             }
+            if (request.getPath().equals("/ratings/my")) {
+                return readMyRatings(request);
+            }
             if (request.getPath().startsWith("/ratings/media/")) {
                 return readByMediaId(request);
             }
@@ -96,6 +99,16 @@ public class RatingController extends Controller {
             return json(ratings, Status.OK);
         }
         return status(Status.BAD_REQUEST);
+    }
+
+    private Response readMyRatings(Request request) {
+        String userId = getUserIdFromRequest(request, authService);
+        if (userId == null) {
+            return status(Status.UNAUTHORIZED);
+        }
+        
+        List<Rating> ratings = ratingService.getByUserId(userId);
+        return json(ratings, Status.OK);
     }
 
     private Response create(Request request) {

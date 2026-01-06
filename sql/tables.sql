@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS media (
     director VARCHAR(255),
     actors TEXT,
     average_rating DOUBLE PRECISION DEFAULT 0.0,
+    age_restriction INTEGER,
     owner_id VARCHAR(36) REFERENCES users(id)
 );
 

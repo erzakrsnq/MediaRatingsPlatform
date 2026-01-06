@@ -52,6 +52,7 @@ public class MediaService {
         media.setReleaseYear(update.getReleaseYear());
         media.setDirector(update.getDirector());
         media.setActors(update.getActors());
+        media.setAgeRestriction(update.getAgeRestriction());
 
         return mediaRepository.save(media);
     }
@@ -68,7 +69,7 @@ public class MediaService {
         return mediaRepository.delete(id);
     }
 
-    public List<Media> search(String title, String genre, String type, Double minRating) {
-        return mediaRepository.search(title, genre, type, minRating);
+    public List<Media> search(String title, String genre, String type, Double minRating, Integer maxAgeRestriction) {
+        return mediaRepository.search(title, genre, type, minRating, maxAgeRestriction);
     }
 }

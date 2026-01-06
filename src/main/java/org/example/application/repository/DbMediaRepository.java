@@ -17,8 +17,8 @@ public class DbMediaRepository implements MediaRepository {
 
     private static final String SELECT_BY_ID = "SELECT * FROM media WHERE id = ?";
     private static final String SELECT_ALL = "SELECT * FROM media";
-    private static final String INSERT = "INSERT INTO media (id, title, description, type, genre, release_year, director, actors, average_rating, owner_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-    private static final String UPDATE = "UPDATE media SET title = ?, description = ?, type = ?, genre = ?, release_year = ?, director = ?, actors = ?, average_rating = ? WHERE id = ?";
+    private static final String INSERT = "INSERT INTO media (id, title, description, type, genre, release_year, director, actors, average_rating, age_restriction, owner_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    private static final String UPDATE = "UPDATE media SET title = ?, description = ?, type = ?, genre = ?, release_year = ?, director = ?, actors = ?, average_rating = ?, age_restriction = ? WHERE id = ?";
     private static final String DELETE = "DELETE FROM media WHERE id = ?";
 
     public DbMediaRepository(ConnectionPool connectionPool) {
@@ -80,7 +80,12 @@ public class DbMediaRepository implements MediaRepository {
                 pstmt.setString(6, media.getDirector());
                 pstmt.setString(7, media.getActors());
                 pstmt.setDouble(8, media.getAverageRating());
-                pstmt.setString(9, media.getId());
+                if (media.getAgeRestriction() != null) {
+                    pstmt.setInt(9, media.getAgeRestriction());
+                } else {
+                    pstmt.setNull(9, java.sql.Types.INTEGER);
+                }
+                pstmt.setString(10, media.getId());
             } else {
                 // Insert
                 pstmt.setString(1, media.getId());
@@ -92,7 +97,12 @@ public class DbMediaRepository implements MediaRepository {
                 pstmt.setString(7, media.getDirector());
                 pstmt.setString(8, media.getActors());
                 pstmt.setDouble(9, media.getAverageRating());
-                pstmt.setString(10, media.getOwnerId());
+                if (media.getAgeRestriction() != null) {
+                    pstmt.setInt(10, media.getAgeRestriction());
+                } else {
+                    pstmt.setNull(10, java.sql.Types.INTEGER);
+                }
+                pstmt.setString(11, media.getOwnerId());
             }
             pstmt.executeUpdate();
             return media;
@@ -121,7 +131,7 @@ public class DbMediaRepository implements MediaRepository {
     }
 
     @Override
-    public List<Media> search(String title, String genre, String type, Double minRating) {
+    public List<Media> search(String title, String genre, String type, Double minRating, Integer maxAgeRestriction) {
         List<Media> mediaList = new ArrayList<>();
         StringBuilder query = new StringBuilder("SELECT * FROM media WHERE 1=1");
         
@@ -136,6 +146,9 @@ public class DbMediaRepository implements MediaRepository {
         }
         if (minRating != null) {
             query.append(" AND average_rating >= ?");
+        }
+        if (maxAgeRestriction != null) {
+            query.append(" AND (age_restriction IS NULL OR age_restriction <= ?)");
         }
         
         try (Connection conn = connectionPool.getConnection();
@@ -153,6 +166,9 @@ public class DbMediaRepository implements MediaRepository {
             }
             if (minRating != null) {
                 pstmt.setDouble(paramIndex++, minRating);
+            }
+            if (maxAgeRestriction != null) {
+                pstmt.setInt(paramIndex++, maxAgeRestriction);
             }
             
             try (ResultSet rs = pstmt.executeQuery()) {
@@ -177,6 +193,10 @@ public class DbMediaRepository implements MediaRepository {
         media.setDirector(rs.getString("director"));
         media.setActors(rs.getString("actors"));
         media.setAverageRating(rs.getDouble("average_rating"));
+        int ageRestriction = rs.getInt("age_restriction");
+        if (!rs.wasNull()) {
+            media.setAgeRestriction(ageRestriction);
+        }
         media.setOwnerId(rs.getString("owner_id"));
         return media;
     }
