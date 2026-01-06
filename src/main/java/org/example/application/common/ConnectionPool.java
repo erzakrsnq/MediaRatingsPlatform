@@ -6,6 +6,14 @@ import java.sql.SQLException;
 
 public class ConnectionPool {
 
+    static {
+        try {
+            Class.forName("org.postgresql.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("PostgreSQL JDBC Driver nicht gefunden!", e);
+        }
+    }
+
     private String dbType;
     private String host;
     private int port;
